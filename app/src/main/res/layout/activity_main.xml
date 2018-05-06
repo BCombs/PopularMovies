@@ -5,6 +5,16 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
+    <TextView
+        android:id="@+id/no_conn_tv"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:gravity="center"
+        android:text="@string/no_network_conn"
+        android:textSize="25sp"
+        android:visibility="gone" />
+
     <android.support.v7.widget.RecyclerView
         android:id="@+id/movie_recyclerview"
         android:layout_width="match_parent"

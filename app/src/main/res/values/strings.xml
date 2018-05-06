@@ -1,6 +1,9 @@
 <resources>
     <string name="app_name">Popular Movies</string>
 
+    <!-- No network connection -->
+    <string name="no_network_conn">No Network Connection</string>
+
     <!-- Content description for poster images -->
     <string name="poster_content_description">Movie Poster Image</string>
 

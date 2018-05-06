@@ -4,10 +4,14 @@
 
 package com.billcombsdevelopment.popularmovies;
 
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -34,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static Retrofit sRetrofit = null;
     private RecyclerView movieListRecyclerView;
+    private TextView networkConnTextView;
     private String mFilterSelected;
     private String mLastFilterSelected;
     private int mScrollPosition = 0;
@@ -44,6 +49,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        networkConnTextView = findViewById(R.id.no_conn_tv);
 
         if (savedInstanceState != null) {
             mMovieList = savedInstanceState.getParcelableArrayList("movieList");
@@ -112,9 +119,9 @@ public class MainActivity extends AppCompatActivity {
                 if (!mLastFilterSelected.equals(mFilterSelected)) {
                     mScrollPosition = 0;
                 }
-
                 // Call getJson with the selection that was made
                 getJson(mFilterSelected);
+
             }
 
             @Override
@@ -123,6 +130,22 @@ public class MainActivity extends AppCompatActivity {
         });
 
         return true;
+    }
+
+    /**
+     * Checks if there is a network connection
+     * Discussed in article at
+     * https://stackoverflow.com/questions/1560788/how-to-check-internet-access-on-android-inetaddress-never-times-out
+     *
+     * @return
+     */
+    private boolean checkNetworkConnectivity() {
+        ConnectivityManager checkConn = (ConnectivityManager)
+                getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        NetworkInfo networkInfo = checkConn.getActiveNetworkInfo();
+
+        return networkInfo != null && networkInfo.isConnectedOrConnecting();
     }
 
     /**
@@ -152,23 +175,41 @@ public class MainActivity extends AppCompatActivity {
             call = movieServices.getTopRatedMovies();
         }
 
-        call.enqueue(new Callback<JsonObject>() {
-            @Override
-            public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
-
-                JsonObject jsonObject = response.body();
-
-                mMovieList = parseJsonData(jsonObject);
-
-                initRecyclerView();
+        if (checkNetworkConnectivity()) {
+            // If we regained network connectivity
+            if (movieListRecyclerView != null &&
+                    movieListRecyclerView.getVisibility() == View.GONE) {
+                movieListRecyclerView.setVisibility(View.VISIBLE);
+            }
+            if (networkConnTextView.getVisibility() == View.VISIBLE) {
+                networkConnTextView.setVisibility(View.GONE);
             }
 
-            @Override
-            public void onFailure(Call<JsonObject> call, Throwable t) {
-                // Display a toast showing the error message
-                Toast.makeText(getApplicationContext(), t.getMessage(), Toast.LENGTH_LONG).show();
+            call.enqueue(new Callback<JsonObject>() {
+                @Override
+                public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
+
+                    JsonObject jsonObject = response.body();
+
+                    mMovieList = parseJsonData(jsonObject);
+
+                    initRecyclerView();
+                }
+
+                @Override
+                public void onFailure(Call<JsonObject> call, Throwable t) {
+                    // Display a toast showing the error message
+                    Toast.makeText(getApplicationContext(), t.getMessage(), Toast.LENGTH_LONG).show();
+                }
+            });
+        } else {
+            if (movieListRecyclerView != null) {
+                movieListRecyclerView.setVisibility(View.INVISIBLE);
+                Log.d("No Connection", "Setting RecyclerView to GONE");
             }
-        });
+            networkConnTextView.setVisibility(View.VISIBLE);
+        }
+
     }
 
     /**
@@ -219,5 +260,10 @@ public class MainActivity extends AppCompatActivity {
         MovieAdapter movieAdapter = new MovieAdapter(getApplicationContext(), mMovieList);
         movieListRecyclerView.setAdapter(movieAdapter);
         movieListRecyclerView.scrollToPosition(mScrollPosition);
+
+        // Check if RecyclerView is visible
+        if (movieListRecyclerView.getVisibility() == View.GONE) {
+            movieListRecyclerView.setVisibility(View.VISIBLE);
+        }
     }
 }

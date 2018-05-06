@@ -5,7 +5,6 @@
 package com.billcombsdevelopment.popularmovies;
 
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.Color;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
@@ -21,12 +20,14 @@ import java.util.List;
 
 public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.ViewHolder> {
 
-    private Context mContext;
     private List<Movie> mMovieList;
+    private OnItemClickListener mListener;
+    private Context mContext;
 
-    public MovieAdapter(Context context, List<Movie> movieList) {
+    public MovieAdapter(Context context, List<Movie> movieList, OnItemClickListener listener) {
         this.mContext = context;
         this.mMovieList = movieList;
+        this.mListener = listener;
     }
 
     @NonNull
@@ -43,15 +44,10 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.ViewHolder> 
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        final Movie movie = mMovieList.get(position);
+        Movie movie = mMovieList.get(position);
+        holder.bind(movie, mListener);
 
-        // Load image into ImageView with Picasso
-        Picasso.with(mContext).load(movie.getImageUrl())
-                .placeholder(R.drawable.film)
-                .error(R.drawable.film)
-                .fit()
-                .noFade()
-                .into(holder.movieImageView);
+
     }
 
     @Override
@@ -59,26 +55,40 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.ViewHolder> 
         return mMovieList.size();
     }
 
-    public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
+    /**
+     * Interface to handle Item clicks
+     * Found in https://antonioleiva.com/recyclerview-listener/
+     * and Udacity Classroom Lesson 4: RecyclerView 20. Responding to Item Clicks
+     */
+    public interface OnItemClickListener {
+        void onItemClick(Movie movie);
+    }
+
+    public class ViewHolder extends RecyclerView.ViewHolder {
         ImageView movieImageView;
 
         public ViewHolder(View itemView) {
             super(itemView);
 
             movieImageView = itemView.findViewById(R.id.movie_list_image_iv);
-            itemView.setOnClickListener(this);
         }
 
-        @Override
-        public void onClick(View v) {
-            int itemPosition = getAdapterPosition();
+        public void bind(final Movie movie, final OnItemClickListener listener) {
 
-            Movie movie = mMovieList.get(itemPosition);
+            // Load image into ImageView with Picasso
+            Picasso.with(mContext).load(movie.getImageUrl())
+                    .placeholder(R.drawable.film)
+                    .error(R.drawable.film)
+                    .fit()
+                    .noFade()
+                    .into(movieImageView);
 
-            Intent intent = new Intent(mContext, DetailActivity.class);
-            intent.putExtra("movie", movie);
-
-            mContext.startActivity(intent);
+            itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    listener.onItemClick(movie);
+                }
+            });
         }
     }
 }

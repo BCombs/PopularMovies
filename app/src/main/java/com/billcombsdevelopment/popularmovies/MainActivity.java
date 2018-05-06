@@ -5,13 +5,13 @@
 package com.billcombsdevelopment.popularmovies;
 
 import android.content.Context;
+import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -50,6 +50,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        movieListRecyclerView = findViewById(R.id.movie_recyclerview);
+        movieListRecyclerView.setLayoutManager(new GridLayoutManager(MainActivity.this, 2));
         networkConnTextView = findViewById(R.id.no_conn_tv);
 
         if (savedInstanceState != null) {
@@ -62,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
             // Get JSON data with "Most Popular" as the default filter
             mFilterSelected = getResources().getString(R.string.most_popular);
+            mLastFilterSelected = getResources().getString(R.string.most_popular);
 
             getJson(mFilterSelected);
         }
@@ -78,8 +81,11 @@ public class MainActivity extends AppCompatActivity {
         // Store the previous selected filter
         outState.putString("lastSelectedFilter", mLastFilterSelected);
 
-        // Information found at https://stackoverflow.com/questions/29463560/findfirstvisibleitempositions-doesnt-work-for-recycleview-android/29529952
-        mScrollPosition = ((GridLayoutManager) movieListRecyclerView.getLayoutManager()).findFirstVisibleItemPosition();
+        if (movieListRecyclerView != null) {
+            // Information found at https://stackoverflow.com/questions/29463560/findfirstvisibleitempositions-doesnt-work-for-recycleview-android/29529952
+            mScrollPosition = ((GridLayoutManager) movieListRecyclerView.getLayoutManager()).findFirstVisibleItemPosition();
+        }
+
         outState.putInt("scrollPosition", mScrollPosition);
     }
 
@@ -121,7 +127,6 @@ public class MainActivity extends AppCompatActivity {
                 }
                 // Call getJson with the selection that was made
                 getJson(mFilterSelected);
-
             }
 
             @Override
@@ -137,7 +142,7 @@ public class MainActivity extends AppCompatActivity {
      * Discussed in article at
      * https://stackoverflow.com/questions/1560788/how-to-check-internet-access-on-android-inetaddress-never-times-out
      *
-     * @return
+     * @return true if there is a network connection, false if not
      */
     private boolean checkNetworkConnectivity() {
         ConnectivityManager checkConn = (ConnectivityManager)
@@ -145,7 +150,7 @@ public class MainActivity extends AppCompatActivity {
 
         NetworkInfo networkInfo = checkConn.getActiveNetworkInfo();
 
-        return networkInfo != null && networkInfo.isConnectedOrConnecting();
+        return networkInfo != null && networkInfo.isConnected();
     }
 
     /**
@@ -160,7 +165,7 @@ public class MainActivity extends AppCompatActivity {
                     .build();
         }
 
-        MovieServices movieServices = sRetrofit.create(MovieServices.class);
+        final MovieServices movieServices = sRetrofit.create(MovieServices.class);
 
         Call<JsonObject> call;
 
@@ -176,14 +181,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (checkNetworkConnectivity()) {
-            // If we regained network connectivity
-            if (movieListRecyclerView != null &&
-                    movieListRecyclerView.getVisibility() == View.GONE) {
-                movieListRecyclerView.setVisibility(View.VISIBLE);
-            }
-            if (networkConnTextView.getVisibility() == View.VISIBLE) {
-                networkConnTextView.setVisibility(View.GONE);
-            }
 
             call.enqueue(new Callback<JsonObject>() {
                 @Override
@@ -191,9 +188,11 @@ public class MainActivity extends AppCompatActivity {
 
                     JsonObject jsonObject = response.body();
 
-                    mMovieList = parseJsonData(jsonObject);
+                    if (jsonObject != null) {
+                        mMovieList = parseJsonData(jsonObject);
 
-                    initRecyclerView();
+                        initRecyclerView();
+                    }
                 }
 
                 @Override
@@ -203,13 +202,12 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         } else {
+            // No network connection, display networkConnTextView
             if (movieListRecyclerView != null) {
                 movieListRecyclerView.setVisibility(View.GONE);
-                Log.d("No Connection", "Setting RecyclerView to GONE");
             }
             networkConnTextView.setVisibility(View.VISIBLE);
         }
-
     }
 
     /**
@@ -253,12 +251,26 @@ public class MainActivity extends AppCompatActivity {
      * Initializes the RecyclerView after the proper data has been received
      */
     private void initRecyclerView() {
-        movieListRecyclerView = findViewById(R.id.movie_recyclerview);
-        movieListRecyclerView.setLayoutManager(new GridLayoutManager(MainActivity.this, 2));
-
         // Set the adapter to the RecyclerView and pass in the movies list
-        MovieAdapter movieAdapter = new MovieAdapter(getApplicationContext(), mMovieList);
+        MovieAdapter movieAdapter = new MovieAdapter(getApplicationContext(), mMovieList, new MovieAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(Movie movie) {
+                Intent intent = new Intent(getApplicationContext(), DetailActivity.class);
+                intent.putExtra("movie", movie);
+
+                getApplicationContext().startActivity(intent);
+            }
+        });
         movieListRecyclerView.setAdapter(movieAdapter);
         movieListRecyclerView.scrollToPosition(mScrollPosition);
+
+        /*
+         * If the RecyclerView is hidden because of no network connectivity, show the RecyclerView
+         * again since we have regained connectivity.
+         */
+        if (movieListRecyclerView.getVisibility() == View.GONE) {
+            movieListRecyclerView.setVisibility(View.VISIBLE);
+            networkConnTextView.setVisibility(View.GONE);
+        }
     }
 }

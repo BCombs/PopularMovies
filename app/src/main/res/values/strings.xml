@@ -1,0 +1,28 @@
+<resources>
+    <string name="app_name">Popular Movies</string>
+
+    <!-- Content description for poster images -->
+    <string name="poster_content_description">Movie Poster Image</string>
+
+    <!-- Content description for Detail Activity background image -->
+    <string name="background_image">Background Image</string>
+
+    <!-- Display what the user rating is out of (ie (6/10) -->
+    <string name="user_rating_max">/10</string>
+
+    <!-- Spinner title -->
+    <string name="spinner_title">Filter Options</string>
+
+    <!-- Individual spinner elements -->
+    <string name="most_popular">Most Popular</string>
+    <string name="top_rated">Top Rated</string>
+
+    <!-- Spinner options -->
+    <string-array name="filter_options">
+        <item>@string/most_popular</item>
+        <item>@string/top_rated</item>
+    </string-array>
+
+    <!-- Date parse exception message -->
+    <string name="date_parse_error">Error parsing date</string>
+</resources>

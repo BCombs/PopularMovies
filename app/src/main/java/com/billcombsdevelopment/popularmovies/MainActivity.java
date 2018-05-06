@@ -204,7 +204,7 @@ public class MainActivity extends AppCompatActivity {
             });
         } else {
             if (movieListRecyclerView != null) {
-                movieListRecyclerView.setVisibility(View.INVISIBLE);
+                movieListRecyclerView.setVisibility(View.GONE);
                 Log.d("No Connection", "Setting RecyclerView to GONE");
             }
             networkConnTextView.setVisibility(View.VISIBLE);
@@ -260,10 +260,5 @@ public class MainActivity extends AppCompatActivity {
         MovieAdapter movieAdapter = new MovieAdapter(getApplicationContext(), mMovieList);
         movieListRecyclerView.setAdapter(movieAdapter);
         movieListRecyclerView.scrollToPosition(mScrollPosition);
-
-        // Check if RecyclerView is visible
-        if (movieListRecyclerView.getVisibility() == View.GONE) {
-            movieListRecyclerView.setVisibility(View.VISIBLE);
-        }
     }
 }
